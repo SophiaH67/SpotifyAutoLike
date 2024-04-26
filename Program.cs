@@ -1,4 +1,4 @@
-// See https://aka.ms/new-console-template for more information
+﻿// See https://aka.ms/new-console-template for more information
 using SpotifyAPI.Web;
 using Microsoft.Extensions.Logging;
 
@@ -20,7 +20,7 @@ var token = await auth.GetAccessToken();
 
 ILogger Logger = logging.CreateLogger("SpotifyAutoLike");
 
-Console.WriteLine("Retrieved token " + token);
+Logger.LogDebug("Retrieved token " + token);
 
 var spotify = new SpotifyClient(token);
 
