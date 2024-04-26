@@ -48,7 +48,14 @@ public class SpotifyAuth
 
     var request = new LoginRequest(_server.BaseUri, ClientId, LoginRequest.ResponseType.Token)
     {
-      Scope = new List<string> { Scopes.UserReadEmail }
+      Scope = new List<string> {
+        // To read player data
+        Scopes.UserReadPlaybackState,
+        Scopes.UserReadPlaybackPosition,
+
+        Scopes.UserLibraryModify, // To add tracks to liked
+        Scopes.UserLibraryRead, // To check if a track is already liked
+        }
     };
     BrowserUtil.Open(request.ToUri());
   }
