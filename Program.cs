@@ -22,7 +22,11 @@ ILogger Logger = logging.CreateLogger("SpotifyAutoLike");
 
 Logger.LogDebug("Retrieved token " + token);
 
-var spotify = new SpotifyClient(token);
+var config = SpotifyClientConfig
+  .CreateDefault()
+  .WithToken(token)
+  .WithRetryHandler(new SimpleRetryHandler() { RetryAfter = TimeSpan.FromSeconds(1) });
+var spotify = new SpotifyClient(config);
 
 
 FullTrack? previousTrack = null;
