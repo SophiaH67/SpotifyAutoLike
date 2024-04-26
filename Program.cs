@@ -1,11 +1,17 @@
-﻿// See https://aka.ms/new-console-template for more information
+// See https://aka.ms/new-console-template for more information
 using SpotifyAPI.Web;
 using Microsoft.Extensions.Logging;
 
+#if DEBUG
+LogLevel logLevel = LogLevel.Debug;
+#else
+LogLevel logLevel = LogLevel.Information;
+#endif
+
 using ILoggerFactory logging = LoggerFactory.Create(builder =>
-  builder.AddConsole()
-  // Show all logs
-  .AddFilter(level => true)
+  builder
+    .AddConsole()
+    .AddFilter(level => level >= logLevel)
 );
 
 SpotifyAuth auth = new();
