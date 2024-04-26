@@ -28,6 +28,8 @@ var spotify = new SpotifyClient(token);
 FullTrack? previousTrack = null;
 double previousPercentage = 0;
 
+Logger.LogInformation("Started successfully!");
+
 while (true)
 {
   await Task.Delay(1000);
