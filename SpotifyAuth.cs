@@ -7,6 +7,37 @@ public class SpotifyAuth
   private readonly string ClientId = "0d62ea3874874058aabe8761b4908a0e";
   private string? _accessToken = null;
 
+  private async Task LoadAccessToken()
+  {
+    var tokenPath = GetPersistentTokenPath();
+    if (File.Exists(tokenPath))
+    {
+      _accessToken = File.ReadAllText(tokenPath);
+    }
+  }
+
+  public async Task SaveAccessToken(string token)
+  {
+    var tokenPath = GetPersistentTokenPath();
+    // Make sure the directory exists
+    var dir = Path.GetDirectoryName(tokenPath);
+    if (!Directory.Exists(dir))
+    {
+      Directory.CreateDirectory(dir);
+    }
+    File.WriteAllText(tokenPath, token);
+  }
+
+  private string GetPersistentTokenPath()
+  {
+    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "spotify-auto-like", "token.txt");
+  }
+
+  public async Task Load()
+  {
+    await LoadAccessToken();
+  }
+
   private async Task StartAuthFlow()
   {  ///    // Make sure "http://localhost:5543/callback" is in your spotify application as redirect uri!
     _server = new EmbedIOAuthServer(new Uri("http://localhost:5543/callback"), 5543);
@@ -26,6 +57,7 @@ public class SpotifyAuth
   {
     await _server.Stop();
     _accessToken = response.AccessToken;
+    await SaveAccessToken(_accessToken);
   }
 
   private async Task OnErrorReceived(object sender, string error, string state)
