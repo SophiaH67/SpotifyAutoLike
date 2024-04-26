@@ -65,6 +65,7 @@ while (true)
   // Most important of all, the liking
   if (previousTrack != null && previousTrack.Id != track.Id)
   {
+    string formattedPreviousTrackName = previousTrack.Name + " - " + String.Join(", ", previousTrack.Artists.Select(a => a.Name));
     if (previousPercentage > 95)
     {
       // Check if the track has been liked
@@ -72,18 +73,18 @@ while (true)
       var isLiked = liked[0];
       if (isLiked)
       {
-        Logger.LogDebug("Not liking " + previousTrack.Name + " (Already liked)");
+        Logger.LogDebug("Not liking " + formattedPreviousTrackName + " (Already liked)");
 
       }
       else
       {
-        Logger.LogInformation("Liking " + previousTrack.Name + " (" + previousPercentage + "% played)");
+        Logger.LogInformation("Liking " + formattedPreviousTrackName + " (" + previousPercentage + "% played)");
         await spotify.Library.SaveTracks(new([previousTrack.Id]));
       }
     }
     else
     {
-      Logger.LogDebug("Not liking " + previousTrack.Name + " (" + previousPercentage + "% played)");
+      Logger.LogDebug("Not liking " + formattedPreviousTrackName + " (" + previousPercentage + "% played)");
     }
   }
 
