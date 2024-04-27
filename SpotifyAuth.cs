@@ -5,48 +5,30 @@ public class SpotifyAuth
 {
   private EmbedIOAuthServer _server;
   private readonly string ClientId = "0d62ea3874874058aabe8761b4908a0e";
+  private readonly string ClientSecret;
   private string? _accessToken = null;
 
-  private async Task LoadAccessToken()
+  public SpotifyAuth()
   {
-    var tokenPath = GetPersistentTokenPath();
-    if (File.Exists(tokenPath))
+    _server = new EmbedIOAuthServer(new Uri("http://localhost:5543/callback"), 5543);
+
+    // Read client secret from environment variable
+    string? rawClientSecret = Environment.GetEnvironmentVariable("SPOTIFY_CLIENT_SECRET");
+    if (string.IsNullOrEmpty(rawClientSecret))
     {
-      _accessToken = File.ReadAllText(tokenPath);
+      throw new Exception("SPOTIFY_CLIENT_SECRET environment variable is not set");
     }
-  }
-
-  public async Task SaveAccessToken(string token)
-  {
-    var tokenPath = GetPersistentTokenPath();
-    // Make sure the directory exists
-    var dir = Path.GetDirectoryName(tokenPath);
-    if (!Directory.Exists(dir))
-    {
-      Directory.CreateDirectory(dir);
-    }
-    File.WriteAllText(tokenPath, token);
-  }
-
-  private string GetPersistentTokenPath()
-  {
-    return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "spotify-auto-like", "token.txt");
-  }
-
-  public async Task Load()
-  {
-    await LoadAccessToken();
+    ClientSecret = rawClientSecret;
   }
 
   private async Task StartAuthFlow()
-  {  ///    // Make sure "http://localhost:5543/callback" is in your spotify application as redirect uri!
-    _server = new EmbedIOAuthServer(new Uri("http://localhost:5543/callback"), 5543);
+  {
     await _server.Start();
 
-    _server.ImplictGrantReceived += OnImplicitGrantReceived;
+    _server.AuthorizationCodeReceived += OnAuthorizationCodeReceived;
     _server.ErrorReceived += OnErrorReceived;
 
-    var request = new LoginRequest(_server.BaseUri, ClientId, LoginRequest.ResponseType.Token)
+    var request = new LoginRequest(_server.BaseUri, ClientId, LoginRequest.ResponseType.Code)
     {
       Scope = new List<string> {
         // To read player data
@@ -60,11 +42,9 @@ public class SpotifyAuth
     BrowserUtil.Open(request.ToUri());
   }
 
-  private async Task OnImplicitGrantReceived(object sender, ImplictGrantResponse response)
+  private async Task OnAuthorizationCodeReceived(object sender, AuthorizationCodeResponse response)
   {
     await _server.Stop();
-    _accessToken = response.AccessToken;
-    await SaveAccessToken(_accessToken);
   }
 
   private async Task OnErrorReceived(object sender, string error, string state)
@@ -92,22 +72,29 @@ public class SpotifyAuth
       var t = new TaskCompletionSource<string>();
 
       // This is a type I copied from my IDE, no idea what it means 
-      Func<object, ImplictGrantResponse, Task> callback = null!;
+      Func<object, AuthorizationCodeResponse, Task> callback = null!;
 
-      callback = (object sender, ImplictGrantResponse response) =>
+      callback = async (object sender, AuthorizationCodeResponse response) =>
       {
-        t.SetResult(response.AccessToken);
-        _server.ImplictGrantReceived -= callback;
-        return Task.CompletedTask;
+        // Retrieve the access token
+        var config = SpotifyClientConfig.CreateDefault();
+
+        var tokenResponse = await new OAuthClient(config).RequestToken(
+          new AuthorizationCodeTokenRequest(
+            ClientId, ClientSecret, response.Code, new Uri("http://localhost:5543/callback")
+          )
+        );
+
+        // Save the refresh token
+        _accessToken = tokenResponse.AccessToken;
+        t.SetResult(tokenResponse.AccessToken);
+
+        // Remove the callback
+        _server.AuthorizationCodeReceived -= callback;
       };
-      _server.ImplictGrantReceived += callback;
+      _server.AuthorizationCodeReceived += callback;
 
       return t.Task;
     });
-  }
-
-  public void InvalidateAccessToken()
-  {
-    _accessToken = null;
   }
 }

@@ -15,7 +15,6 @@ using ILoggerFactory logging = LoggerFactory.Create(builder =>
 );
 
 SpotifyAuth auth = new();
-await auth.Load();
 var token = await auth.GetAccessToken();
 
 ILogger Logger = logging.CreateLogger("SpotifyAutoLike");
