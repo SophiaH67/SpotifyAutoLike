@@ -1,12 +1,26 @@
 using SpotifyAPI.Web;
 using SpotifyAPI.Web.Auth;
 
+public class Token
+{
+  public string AccessToken;
+  public string RefreshToken;
+  public DateTime ExpiresAt;
+
+  public Token(string accessToken, string refreshToken, int expiresIn)
+  {
+    AccessToken = accessToken;
+    RefreshToken = refreshToken;
+    ExpiresAt = DateTime.Now.AddSeconds(expiresIn);
+  }
+}
+
 public class SpotifyAuth
 {
   private EmbedIOAuthServer _server;
   private readonly string ClientId = "0d62ea3874874058aabe8761b4908a0e";
   private readonly string ClientSecret;
-  private string? _accessToken = null;
+  private Token? _token = null;
 
   public SpotifyAuth()
   {
@@ -56,9 +70,9 @@ public class SpotifyAuth
   public async Task<string> GetAccessToken()
   {
     // If the access token is already available, return it
-    if (_accessToken != null)
+    if (_token != null)
     {
-      return _accessToken;
+      return _token.AccessToken;
     }
 
     // Otherwise, start a new task to:
@@ -86,8 +100,8 @@ public class SpotifyAuth
         );
 
         // Save the refresh token
-        _accessToken = tokenResponse.AccessToken;
-        t.SetResult(tokenResponse.AccessToken);
+        _token = new Token(tokenResponse.AccessToken, tokenResponse.RefreshToken, tokenResponse.ExpiresIn);
+        t.SetResult(_token.AccessToken);
 
         // Remove the callback
         _server.AuthorizationCodeReceived -= callback;
