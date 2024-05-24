@@ -13,6 +13,12 @@ public class Token
     RefreshToken = refreshToken;
     ExpiresAt = DateTime.Now.AddSeconds(expiresIn);
   }
+
+  public bool IsAboutToExpire()
+  {
+    // Margin of 30 seconds
+    return DateTime.Now > ExpiresAt.AddSeconds(-30);
+  }
 }
 
 public class SpotifyAuth
@@ -40,7 +46,7 @@ public class SpotifyAuth
     await _server.Start();
 
     _server.AuthorizationCodeReceived += OnAuthorizationCodeReceived;
-    _server.ErrorReceived += OnErrorReceived;
+    _server.ErrorReceived += OnErrorReceived!;
 
     var request = new LoginRequest(_server.BaseUri, ClientId, LoginRequest.ResponseType.Code)
     {
@@ -67,12 +73,12 @@ public class SpotifyAuth
     await _server.Stop();
   }
 
-  public async Task<string> GetAccessToken()
+  public async Task<Token> GetToken()
   {
     // If the access token is already available, return it
     if (_token != null)
     {
-      return _token.AccessToken;
+      return _token;
     }
 
     // Otherwise, start a new task to:
@@ -83,7 +89,7 @@ public class SpotifyAuth
 
     return await Task.Run(() =>
     {
-      var t = new TaskCompletionSource<string>();
+      var t = new TaskCompletionSource<Token>();
 
       // This is a type I copied from my IDE, no idea what it means 
       Func<object, AuthorizationCodeResponse, Task> callback = null!;
@@ -101,7 +107,7 @@ public class SpotifyAuth
 
         // Save the refresh token
         _token = new Token(tokenResponse.AccessToken, tokenResponse.RefreshToken, tokenResponse.ExpiresIn);
-        t.SetResult(_token.AccessToken);
+        t.SetResult(_token);
 
         // Remove the callback
         _server.AuthorizationCodeReceived -= callback;
@@ -110,5 +116,10 @@ public class SpotifyAuth
 
       return t.Task;
     });
+  }
+
+  public void InvalidateToken()
+  {
+    _token = null;
   }
 }

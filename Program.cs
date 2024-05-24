@@ -15,7 +15,7 @@ using ILoggerFactory logging = LoggerFactory.Create(builder =>
 );
 
 SpotifyAuth auth = new();
-var token = await auth.GetAccessToken();
+var token = await auth.GetToken();
 
 ILogger Logger = logging.CreateLogger("SpotifyAutoLike");
 
@@ -23,7 +23,7 @@ Logger.LogDebug("Retrieved token " + token);
 
 var config = SpotifyClientConfig
   .CreateDefault()
-  .WithToken(token)
+  .WithToken(token.AccessToken)
   .WithRetryHandler(new SimpleRetryHandler() { RetryAfter = TimeSpan.FromSeconds(1) });
 var spotify = new SpotifyClient(config);
 
@@ -36,6 +36,15 @@ Logger.LogInformation("Started successfully!");
 while (true)
 {
   await Task.Delay(1000);
+
+  if (token.IsAboutToExpire())
+  {
+    auth.InvalidateToken();
+    token = await auth.GetToken();
+    config.WithToken(token.AccessToken);
+    spotify = new SpotifyClient(config);
+  }
+
   // Get the current playback
   var playback = await spotify.Player.GetCurrentPlayback();
   if (playback == null)
