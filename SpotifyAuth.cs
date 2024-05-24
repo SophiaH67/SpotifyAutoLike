@@ -43,6 +43,7 @@ public class SpotifyAuth
 
   private async Task StartAuthFlow()
   {
+    _server = new EmbedIOAuthServer(new Uri("http://localhost:5543/callback"), 5543);
     await _server.Start();
 
     _server.AuthorizationCodeReceived += OnAuthorizationCodeReceived;
