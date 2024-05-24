@@ -41,7 +41,10 @@ while (true)
   {
     auth.InvalidateToken();
     token = await auth.GetToken();
-    config.WithToken(token.AccessToken);
+    config = SpotifyClientConfig
+      .CreateDefault()
+      .WithToken(token.AccessToken)
+      .WithRetryHandler(new SimpleRetryHandler() { RetryAfter = TimeSpan.FromSeconds(1) });
     spotify = new SpotifyClient(config);
   }
 
